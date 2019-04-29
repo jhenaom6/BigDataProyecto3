@@ -1,4 +1,4 @@
-PROYECTO 3 - BIGDATA
+﻿PROYECTO 3 - BIGDATA
 
 Curso ST0263 Tópicos Especiales en Telematica
 
@@ -8,7 +8,6 @@ Universidad EAFIT
 
 Estudiantes:
 
-Maria Camila Calle Agudeo
 Juan Esteban Henao Muñoz
 
 a. Contexto
