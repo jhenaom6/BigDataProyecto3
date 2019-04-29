@@ -1,0 +1,44 @@
+##En el presente código se hace el proceso de limpieza y además se imprimen las primeros 5 noticias en donde más se repite la palabra ingresada Aunque no se muestra el título de la misma.
+
+
+dbutils.widgets.text ('ingresar', "ingrese la palabra a buscar")
+
+import pyspark
+import re
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import Tokenizer,RegexTokenizer
+from pyspark.sql.functions import col,udf,explode, trim, lower
+from pyspark.sql.types import IntegerType
+spark= SparkSession.builder.appName('proyecto3').getOrCreate()
+
+df1 = spark.read.csv('/FileStore/tables/FileStore/tables/articles1.csv',inferSchema=True,header=True)
+
+df2= spark.read.csv('/FileStore/tables/articles2.csv',inferSchema=True,header=True)
+
+df3= spark.read.csv('/FileStore/tables/articles3.csv',inferSchema=True,header=True)
+
+dfx=df1.union(df2)
+dft=dfx.union(df3)
+df=dft.select(dft['id'],dft['title'],dft['content'])
+
+tokenizer= Tokenizer(inputCol='content', outputCol='words')
+regex_tokenizer= RegexTokenizer(inputCol='content', outputCol='words',pattern='[^a-zA-Z0-9]+').setMinTokenLength(2)
+count_tokens= udf(lambda words:len(words),IntegerType())
+df2=df.fillna("unknown", subset=["content","title"])
+tokenized= regex_tokenizer.transform(df2)
+
+from pyspark.ml.feature import StopWordsRemover
+remover= StopWordsRemover(inputCol='words', outputCol='filtered')
+sinsw=remover.transform(tokenized)
+
+book_words = sinsw.select('id', explode(sinsw.filtered).alias('word')).select('id', trim(lower(col('word'))).alias('word'))
+
+book_words.groupBy('word').count().orderBy('count', ascending=False).show(10)
+
+palabra = dbutils.widgets.get('ingresar')
+print("A continuación se muestran las primeras 5 noticias que contienen la palabra: {palabra}. ".format(palabra=palabra))
+book_words.where('word = "{palabra}"'.format(palabra=palabra)).groupBy('id').count().orderBy('count', ascending=False).show(5)
+
+
+##Esto es solo para mirar que en una noticia si se cumpla la cantidad de repeticiones de una palabra
+book_words.where('id = "73814"').where('word = "republicans"').show(30)
